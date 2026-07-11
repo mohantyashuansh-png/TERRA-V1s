@@ -1,0 +1,1353 @@
+        <!DOCTYPE html>
+        <html lang="en">
+
+        <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>TERRA-VIS // Tactical Terrain Analysis System</title>
+            <link
+                href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap"
+                rel="stylesheet" />
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <style>
+                :root {
+                    --orange: #ff6b35;
+                    --green: #4ecdc4;
+                    --dark: #0a0e13;
+                    --darker: #050709;
+                    --panel: #0f1419;
+                    --border: #1a2128;
+                    --text: #d4dce5;
+                    --dim: #5a6673;
+                    --red: #ff4757;
+                }
+
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+
+                body {
+                    background: var(--darker);
+                    color: var(--text);
+                    font-family: 'Rajdhani', sans-serif;
+                    overflow: hidden;
+                    height: 100vh;
+                }
+
+                header {
+                    background: var(--dark);
+                    border-bottom: 2px solid var(--border);
+                    padding: 14px 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+
+                .logo {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+
+                .logo-mark {
+                    width: 36px;
+                    height: 36px;
+                    border: 2px solid var(--orange);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transform: rotate(45deg);
+                }
+
+                .logo-mark::before {
+                    content: '';
+                    width: 16px;
+                    height: 16px;
+                    background: var(--orange);
+                }
+
+                .logo-text {
+                    font-family: 'Share Tech Mono', monospace;
+                    font-size: 22px;
+                    letter-spacing: 5px;
+                    color: var(--orange);
+                }
+
+                .header-stats {
+                    display: flex;
+                    gap: 40px;
+                }
+
+                .stat-box {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-end;
+                    gap: 2px;
+                }
+
+                .stat-label {
+                    font-size: 9px;
+                    letter-spacing: 3px;
+                    color: var(--dim);
+                    text-transform: uppercase;
+                }
+
+                .stat-value {
+                    font-family: 'Share Tech Mono', monospace;
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: var(--green);
+                }
+
+                .stat-value.orange {
+                    color: var(--orange);
+                }
+
+                main {
+                    display: grid;
+                    grid-template-columns: 340px 1fr 340px;
+                    height: calc(100vh - 64px);
+                    gap: 2px;
+                    background: var(--border);
+                }
+
+                .panel {
+                    background: var(--panel);
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                }
+
+                .panel-header {
+                    padding: 12px 16px;
+                    border-bottom: 1px solid var(--border);
+                    font-size: 11px;
+                    letter-spacing: 4px;
+                    text-transform: uppercase;
+                    color: var(--orange);
+                    font-weight: 600;
+                }
+
+                .panel-content {
+                    flex: 1;
+                    padding: 16px;
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                }
+
+                /* Tactical Scrollbar */
+                ::-webkit-scrollbar {
+                    width: 5px;
+                    height: 5px;
+                }
+
+                ::-webkit-scrollbar-track {
+                    background: var(--darker);
+                    border-left: 1px solid var(--border);
+                }
+
+                ::-webkit-scrollbar-thumb {
+                    background: var(--border);
+                }
+
+                ::-webkit-scrollbar-thumb:hover {
+                    background: var(--dim);
+                }
+
+                .section-block {
+                    margin-bottom: 24px;
+                }
+
+                .section-title {
+                    font-size: 10px;
+                    letter-spacing: 3px;
+                    color: var(--green);
+                    text-transform: uppercase;
+                    margin-bottom: 10px;
+                    padding-bottom: 6px;
+                    border-bottom: 1px solid var(--border);
+                }
+
+                .mode-buttons {
+                    display: flex;
+                    gap: 2px;
+                    margin-bottom: 12px;
+                }
+
+                .mode-btn {
+                    flex: 1;
+                    padding: 8px;
+                    background: var(--darker);
+                    border: 1px solid var(--border);
+                    color: var(--dim);
+                    font-size: 10px;
+                    font-weight: 600;
+                    letter-spacing: 2px;
+                    text-transform: uppercase;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .mode-btn.active {
+                    background: var(--orange);
+                    color: var(--darker);
+                    border-color: var(--orange);
+                }
+
+                .special-btn {
+                    width: 100%;
+                    margin-bottom: 5px;
+                    background: transparent;
+                    border: 1px solid var(--green);
+                    color: var(--green);
+                    padding: 8px;
+                    font-size: 10px;
+                    letter-spacing: 2px;
+                    cursor: pointer;
+                    text-transform: uppercase;
+                }
+
+                .special-btn.active {
+                    background: var(--green);
+                    color: black;
+                    box-shadow: 0 0 10px var(--green);
+                }
+
+                .action-btn {
+                    width: 100%;
+                    padding: 15px;
+                    font-weight: bold;
+                    font-size: 14px;
+                    letter-spacing: 2px;
+                    text-transform: uppercase;
+                    cursor: pointer;
+                    border: 2px solid;
+                    transition: all 0.3s;
+                    background: transparent;
+                }
+
+                .action-btn.start {
+                    border-color: var(--green);
+                    color: var(--green);
+                }
+
+                .action-btn.start:hover {
+                    background: var(--green);
+                    color: black;
+                    box-shadow: 0 0 15px var(--green);
+                }
+
+                .action-btn.stop {
+                    border-color: var(--red);
+                    color: var(--red);
+                }
+
+                .action-btn.stop:hover {
+                    background: var(--red);
+                    color: white;
+                    box-shadow: 0 0 15px var(--red);
+                }
+
+                .drop-zone {
+                    border: 2px dashed var(--border);
+                    padding: 40px 20px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    position: relative;
+                    background: var(--darker);
+                }
+
+                .drop-zone:hover {
+                    border-color: var(--orange);
+                }
+
+                .drop-zone input[type="file"] {
+                    position: absolute;
+                    inset: 0;
+                    opacity: 0;
+                    cursor: pointer;
+                }
+
+                .webcam-preview {
+                    width: 100%;
+                    aspect-ratio: 16/9;
+                    background: var(--darker);
+                    border: 1px solid var(--border);
+                    position: relative;
+                    overflow: hidden;
+                    margin-bottom: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                #webcam,
+                #videoPlayer {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
+                }
+
+                .display-controls {
+                    padding: 12px 16px;
+                    background: var(--dark);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-bottom: 1px solid var(--border);
+                }
+
+                .view-buttons {
+                    display: flex;
+                    gap: 2px;
+                }
+
+                .view-btn {
+                    padding: 6px 12px;
+                    background: var(--panel);
+                    border: 1px solid var(--border);
+                    color: var(--dim);
+                    font-size: 9px;
+                    font-weight: 600;
+                    letter-spacing: 2px;
+                    text-transform: uppercase;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .view-btn.active {
+                    background: var(--green);
+                    color: var(--darker);
+                    border-color: var(--green);
+                }
+
+                .display-area {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: var(--darker);
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                #mainDisplay {
+                    max-width: 100%;
+                    max-height: 100%;
+                    object-fit: contain;
+                }
+
+                .metric-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 8px 0;
+                    border-bottom: 1px solid var(--border);
+                }
+
+                .metric-name {
+                    font-size: 11px;
+                    letter-spacing: 2px;
+                    color: var(--dim);
+                    text-transform: uppercase;
+                }
+
+                .metric-val {
+                    font-family: 'Share Tech Mono', monospace;
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: var(--green);
+                }
+
+                .iou-item {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    margin-bottom: 8px;
+                }
+
+                .iou-header {
+                    display: flex;
+                    justify-content: space-between;
+                }
+
+                .iou-bar {
+                    height: 4px;
+                    background: var(--border);
+                    overflow: hidden;
+                }
+
+                .iou-fill {
+                    height: 100%;
+                    background: var(--green);
+                    transition: width 0.5s ease;
+                    width: 0;
+                }
+
+                .map-container {
+                    width: 100%;
+                    height: 200px;
+                    background: var(--darker);
+                    border: 1px solid var(--border);
+                    margin-top: 12px;
+                }
+
+                #map {
+                    width: 100%;
+                    height: 100%;
+                }
+
+                .logs-container {
+                    background: var(--darker);
+                    border: 1px solid var(--border);
+                    padding: 10px;
+                    max-height: 120px;
+                    overflow-y: auto;
+                    font-family: 'Share Tech Mono', monospace;
+                    font-size: 10px;
+                    line-height: 1.6;
+                    margin-top: 12px;
+                }
+
+                .log-entry {
+                    color: var(--green);
+                    margin-bottom: 2px;
+                }
+
+                .log-entry.error {
+                    color: var(--red);
+                }
+
+                .log-entry.warn {
+                    color: var(--orange);
+                }
+
+                .config-label {
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 10px;
+                    color: var(--text);
+                    padding: 4px 0;
+                    cursor: pointer;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                }
+
+                .config-label:hover {
+                    color: var(--orange);
+                }
+
+                @keyframes flashAlert {
+
+                    0%,
+                    100% {
+                        opacity: 1;
+                    }
+
+                    50% {
+                        opacity: 0;
+                    }
+                }
+
+                .threat-panel {
+                    border: 1px solid var(--red);
+                    background: rgba(255, 0, 0, 0.1);
+                    padding: 10px;
+                    margin-bottom: 20px;
+                    display: none;
+                    animation: flashThreat 1s infinite;
+                }
+
+                @keyframes flashThreat {
+                    50% {
+                        border-color: transparent;
+                    }
+                }
+            </style>
+        </head>
+
+        <body>
+
+            <!-- LOGIN MODAL -->
+            <div id="loginModal"
+                style="position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:9999; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+                <div class="logo" style="margin-bottom:30px;">
+                    <div class="logo-mark"></div>
+                    <div>
+                        <div class="logo-text">TERRA-VIS</div>
+                        <div class="logo-text" style="font-size:10px; letter-spacing:2px; color:#5a6673;">SECURE
+                            TERMINAL LOGIN</div>
+                    </div>
+                </div>
+                <div
+                    style="background:var(--dark); border:1px solid var(--border); padding:30px; width:400px; text-align:center;">
+                    <div style="color:var(--dim); font-size:12px; margin-bottom:20px; letter-spacing:2px;">ENTER
+                        OPERATOR PASSCODE</div>
+                    <input type="password" id="passcodeInput"
+                        style="width:100%; background:var(--darker); border:1px solid var(--border); color:var(--orange); padding:15px; font-family:'Share Tech Mono', monospace; font-size:18px; text-align:center; letter-spacing:5px; margin-bottom:20px;"
+                        onkeydown="if(event.key === 'Enter') attemptLogin()">
+                    <button class="action-btn start" style="width:100%; padding:15px;"
+                        onclick="attemptLogin()">AUTHENTICATE</button>
+                    <div id="loginError" style="color:var(--red); font-size:12px; margin-top:15px; display:none;">ACCESS
+                        DENIED</div>
+                </div>
+            </div>
+
+            <!-- SETTINGS MODAL -->
+            <div id="settingsModal"
+                style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
+                <div
+                    style="background:var(--dark); border:1px solid var(--border); padding:20px; width:450px; color:var(--dim);">
+                    <div
+                        style="font-family:'Orbitron',sans-serif; color:var(--orange); font-size:16px; margin-bottom:20px; letter-spacing:2px; text-align:center;">
+                        UNIVERSAL CONFIGURATION</div>
+
+                    <div
+                        style="font-size:11px; color:var(--green); margin-bottom:10px; letter-spacing:1px; text-transform:uppercase; border-bottom:1px solid var(--green); padding-bottom:4px;">
+                        Passive Sensors</div>
+                    <label class="config-label">
+                        <span>Optical Flow (Motion Anomaly)</span>
+                        <input type="checkbox" id="toggleOptFlow" checked>
+                    </label>
+                    <label class="config-label">
+                        <span>MOG2 (Background Anomaly)</span>
+                        <input type="checkbox" id="toggleMOG2" checked>
+                    </label>
+                    <label class="config-label">
+                        <span>Glint/Flash Detection</span>
+                        <input type="checkbox" id="toggleFlash" checked>
+                    </label>
+                    <label class="config-label" style="margin-bottom:20px;">
+                        <span>VAE Environment Degradation</span>
+                        <input type="checkbox" id="toggleVAE" checked>
+                    </label>
+
+                    <div
+                        style="font-size:11px; color:var(--green); margin-bottom:10px; letter-spacing:1px; text-transform:uppercase; border-bottom:1px solid var(--green); padding-bottom:4px;">
+                        Audio Alerts</div>
+                    <label class="config-label">
+                        <span>Target Lock Voice (YOLO)</span>
+                        <input type="checkbox" id="audioHostile" checked>
+                    </label>
+                    <label class="config-label">
+                        <span>Optic Glint/Sniper Voice</span>
+                        <input type="checkbox" id="audioGlint" checked>
+                    </label>
+                    <label class="config-label">
+                        <span>Flashbang Voice</span>
+                        <input type="checkbox" id="audioFlash" checked>
+                    </label>
+                    <label class="config-label">
+                        <span>Optical Flow Motion Voice</span>
+                        <input type="checkbox" id="audioMotion" checked>
+                    </label>
+                    <label class="config-label">
+                        <span>Unknown Signatures Voice (MOG2)</span>
+                        <input type="checkbox" id="audioMOG2" checked>
+                    </label>
+                    <label class="config-label" style="margin-bottom:25px;">
+                        <span>Environment Degradation Voice (VAE)</span>
+                        <input type="checkbox" id="audioVAE" checked>
+                    </label>
+
+                    <div
+                        style="font-size:11px; color:var(--green); margin-bottom:10px; letter-spacing:1px; text-transform:uppercase; border-bottom:1px solid var(--green); padding-bottom:4px;">
+                        Security</div>
+                    <label class="config-label">
+                        <span>New Passcode</span>
+                        <input type="password" id="newPasscode"
+                            style="background:var(--darker); border:1px solid var(--border); color:var(--orange); padding:4px; font-family:'Share Tech Mono', monospace;">
+                    </label>
+                    <button class="action-btn start"
+                        style="width:100%; padding:5px; margin-bottom:25px; font-size:10px;"
+                        onclick="changePasscode()">UPDATE PASSCODE</button>
+
+                    <button class="action-btn start" style="width:100%; padding:10px;"
+                        onclick="document.getElementById('settingsModal').style.display='none'">SAVE & CLOSE</button>
+                </div>
+            </div>
+
+            <!-- DESTINATION MODAL -->
+            <div id="destModal"
+                style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
+                <div
+                    style="background:var(--dark); border:1px solid var(--border); padding:20px; width:450px; color:var(--dim);">
+                    <div
+                        style="font-family:'Orbitron',sans-serif; color:var(--orange); font-size:16px; margin-bottom:20px; letter-spacing:2px; text-align:center;">
+                        TACTICAL DESTINATION ENTRY</div>
+                    <div
+                        style="font-size:11px; color:var(--green); margin-bottom:10px; letter-spacing:1px; text-transform:uppercase;">
+                        Enter Target Location (Optional)</div>
+                    <input type="text" id="destInput" placeholder="e.g. Times Square, Central Park"
+                        style="width:100%; background:var(--darker); border:1px solid var(--border); color:var(--text); padding:10px; margin-bottom:20px; font-family:'Share Tech Mono', monospace;"
+                        onkeydown="if(event.key === 'Enter') searchDestination()">
+                    <div style="display:flex; gap:10px;">
+                        <button class="action-btn start" style="flex:1; padding:10px;"
+                            onclick="searchDestination()">ROUTE</button>
+                        <button class="action-btn stop" style="flex:1; padding:10px;"
+                            onclick="document.getElementById('destModal').style.display='none'">SKIP</button>
+                    </div>
+                </div>
+            </div>
+
+            <header>
+                <div class="logo">
+                    <div class="logo-mark"></div>
+                    <div>
+                        <div class="logo-text">TERRA-VIS</div>
+                        <div class="logo-text" style="font-size: 10px; letter-spacing: 2px; color: #5a6673;">TACTICAL
+                            TERRAIN ANALYSIS</div>
+                    </div>
+                </div>
+                <div class="header-stats">
+                    <div class="stat-box">
+                        <div class="stat-label">Model Accuracy</div>
+                        <div class="stat-value orange">89.4%</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Latency</div>
+                        <div class="stat-value" id="headerLatency">-- ms</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Status</div>
+                        <div class="stat-value" id="headerStatus">STANDBY</div>
+                    </div>
+                </div>
+            </header>
+
+            <main>
+                <div class="panel">
+                    <div class="panel-header">INPUT CONTROL</div>
+                    <div class="panel-content">
+                        <div class="section-block">
+                            <div class="section-title">Source Select</div>
+                            <div class="mode-buttons">
+                                <button class="mode-btn active" id="modeWebcam"
+                                    onclick="setMode('webcam')">LIVE</button>
+                                <button class="mode-btn" id="modeVideo" onclick="setMode('video')">VIDEO</button>
+                                <button class="mode-btn" id="modeStatic" onclick="setMode('static')">FILE</button>
+                            </div>
+
+                            <div class="webcam-preview" id="previewBox">
+                                <video id="webcam" autoplay playsinline muted style="display:none"></video>
+                                <video id="videoPlayer" loop muted style="display:none"></video>
+                                <img id="staticPreview"
+                                    style="display:none; width:100%; height:100%; object-fit:contain;">
+                                <div id="placeholderText" style="color:var(--dim); font-size:10px;">NO SOURCE</div>
+                            </div>
+
+                            <div id="videoUpload" style="display:none;" class="drop-zone">
+                                <input type="file" id="videoFile" accept="video/mp4,video/webm"
+                                    onchange="handleVideo(this)">
+                                <div style="font-size:10px; color:var(--orange)">SELECT VIDEO FILE (MP4)</div>
+                            </div>
+                            <div id="imageUpload" style="display:none;" class="drop-zone">
+                                <input type="file" id="imageFile" accept="image/*" onchange="handleImage(this)">
+                                <div style="font-size:10px; color:var(--orange)">SELECT IMAGE FILE</div>
+                            </div>
+                        </div>
+
+                        <div class="section-block">
+                            <div class="section-title">Special Sensors (Phase II)</div>
+                            <button class="special-btn" id="btnDepth" onclick="toggleSpecial('depth')">GHOST VISION
+                                (DEPTH)</button>
+                            <button class="special-btn" id="btnThreat" onclick="toggleSpecial('threat')">TARGET LOCK
+                                (YOLO)</button>
+                        </div>
+
+                        <div class="section-block">
+                            <button id="mainBtn" class="action-btn start" onclick="toggleSystem()">ENGAGE
+                                SYSTEMS</button>
+                        </div>
+
+                        <div class="section-block">
+                            <div class="section-title">System Logs</div>
+                            <div class="logs-container" id="logsContainer">
+                                <div class="log-entry">> SYSTEM INITIALIZED</div>
+                            </div>
+                        </div>
+
+
+                        <div class="section-block" style="margin-top:15px;">
+                            <button class="special-btn" style="border-color:var(--orange); color:var(--orange);"
+                                onclick="document.getElementById('settingsModal').style.display='flex'">⚙ UNIVERSAL
+                                CONFIGURATION</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="display-controls">
+                        <div class="display-label">VISUAL OUTPUT</div>
+                        <div class="view-buttons" style="display:flex; align-items:center;">
+                            <button class="view-btn active" id="viewFused" onclick="setView('fused')">FUSED</button>
+                            <span
+                                style="font-size:10px; color:var(--dim); margin-left:10px; margin-right:5px;">DIAG:</span>
+                            <button class="view-btn" id="viewSeg" onclick="setView('seg')">SEG</button>
+                            <button class="view-btn" id="viewRisk" onclick="setView('risk')">RISK</button>
+                            <button class="view-btn" id="viewPath" onclick="setView('path')">PATH</button>
+                        </div>
+                    </div>
+                    <div class="display-area">
+                        <div id="envWarningHUD"
+                            style="display:none; position:absolute; top:20px; left:50%; transform:translateX(-50%); background:rgba(255,0,0,0.8); color:white; padding:10px 20px; font-size:18px; font-weight:bold; letter-spacing:4px; border:2px solid red; border-radius:5px; z-index:999; animation: flashAlert 1s infinite;">
+                            CRITICAL: ENVIRONMENTAL DEGRADATION
+                        </div>
+                        <img id="mainDisplay" style="display:none; width:100%; height:100%; object-fit:contain;" />
+                        <div id="waitText" style="color:var(--dim); font-size:12px; letter-spacing:2px;">AWAITING
+                            INFERENCE</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">PERFORMANCE METRICS</div>
+                    <div class="panel-content">
+                        <div id="threatPanel" class="threat-panel">
+                            <div class="section-title" style="color:var(--red); border-color:var(--red);">⚠️ THREAT
+                                DETECTED</div>
+                            <div class="metric-row">
+                                <div class="metric-name" style="color:var(--red);">HOSTILES</div>
+                                <div class="metric-val" id="valHostiles" style="color:var(--red); font-size: 24px;">0
+                                </div>
+                            </div>
+                            <div class="metric-row">
+                                <div class="metric-name" style="color:var(--orange);">VEHICLES</div>
+                                <div class="metric-val" id="valVehicles" style="color:var(--orange); font-size: 24px;">0
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metric-group">
+                            <div class="section-title">Class Distribution</div>
+                            <div id="iouBars"></div>
+                        </div>
+
+                        <div class="metric-group">
+                            <div class="section-title">Terrain Analysis</div>
+                            <div class="metric-row">
+                                <div class="metric-name">Complexity</div>
+                                <div class="metric-val" id="metricComplexity">--</div>
+                            </div>
+                            <div class="metric-row">
+                                <div class="metric-name">Suitability</div>
+                                <div class="metric-val" id="metricSuitability">--</div>
+                            </div>
+                            <div class="metric-row">
+                                <div class="metric-name">Environment</div>
+                                <div class="metric-val" id="metricEnvironment">--</div>
+                            </div>
+                            <div style="font-size:10px; color:var(--dim); margin-top:5px;" id="suitabilityReason"></div>
+                        </div>
+
+                        <div class="metric-group">
+                            <div class="section-title">GPS Position</div>
+                            <div class="metric-row">
+                                <div class="metric-name">LAT / LON</div>
+                                <div class="metric-val" id="metricGPS">-- / --</div>
+                            </div>
+                            <div class="map-container">
+                                <div id="map"></div>
+                            </div>
+                            <button class="action-btn stop"
+                                style="width:100%; margin-top:5px; padding:5px; font-size:10px;"
+                                onclick="clearRoute()">CLEAR ROUTE</button>
+                        </div>
+
+                        <div class="metric-group">
+                            <button class="special-btn" onclick="exportReport()"
+                                style="border-color:var(--text); color:var(--text);">EXPORT REPORT (PDF/HTML)</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <script>
+                let currentPasscode = "";
+
+                async function attemptLogin() {
+                    const pc = document.getElementById('passcodeInput').value;
+                    const formData = new FormData();
+                    formData.append("passcode", pc);
+                    try {
+                        const res = await fetch('http://localhost:8080/auth', { method: 'POST', body: formData });
+                        if (res.ok) {
+                            currentPasscode = pc;
+                            document.getElementById('loginModal').style.display = 'none';
+                        } else {
+                            document.getElementById('loginError').style.display = 'block';
+                        }
+                    } catch (e) {
+                        document.getElementById('loginError').innerText = "CONNECTION FAILED";
+                        document.getElementById('loginError').style.display = 'block';
+                    }
+                }
+
+                async function changePasscode() {
+                    const np = document.getElementById('newPasscode').value;
+                    if (!np) return;
+                    const formData = new FormData();
+                    formData.append("old_passcode", currentPasscode);
+                    formData.append("new_passcode", np);
+                    try {
+                        const res = await fetch('http://localhost:8080/change_password', { method: 'POST', body: formData });
+                        if (res.ok) {
+                            currentPasscode = np;
+                            alert("Passcode updated successfully.");
+                            document.getElementById('newPasscode').value = "";
+                        } else {
+                            alert("Failed to update passcode.");
+                        }
+                    } catch (e) {
+                        alert("Error updating passcode.");
+                    }
+                }
+
+                let map, webcamStream;
+                let currentMode = 'webcam';
+                let currentView = 'fused';
+                let specialMode = 'standard';
+                let lastData = null;
+                let isRunning = false;
+                let mapMarker = null;
+                let threatMarkers = {};
+                let knownThreats = new Set();
+                let realGPS = null;
+                let gpsWatcher = null;
+                let destMarker = null;
+                let routePolyline = null;
+                let lastHostiles = 0;
+                let lastVehicles = 0;
+
+                if ("geolocation" in navigator) {
+                    gpsWatcher = navigator.geolocation.watchPosition(pos => {
+                        realGPS = {
+                            lat: pos.coords.latitude,
+                            lon: pos.coords.longitude,
+                            heading: pos.coords.heading
+                        };
+                        // Center map initially when we get real GPS
+                        if (!mapMarker && map) {
+                            map.setView([realGPS.lat, realGPS.lon], 15);
+                        }
+                    }, err => {
+                        console.warn("GPS Warning:", err.message);
+                    }, { enableHighAccuracy: true });
+                }
+
+                // INIT
+                window.onload = () => {
+                    map = L.map('map', { zoomControl: false }).setView([26.9157, 70.9083], 13);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+                    initBars();
+                    setMode('webcam');
+
+                    // Phase VI: Map Routing
+                    map.on('click', async function (e) {
+                        if (!realGPS) { log("AWAITING GPS SIGNAL TO ROUTE", "error"); return; }
+
+                        const dest = e.latlng;
+                        if (destMarker) map.removeLayer(destMarker);
+                        destMarker = L.circleMarker(dest, { radius: 6, color: '#ff9f43', fillOpacity: 1 }).addTo(map);
+                        log(`DESTINATION LOCKED: ${dest.lat.toFixed(4)}, ${dest.lng.toFixed(4)}`);
+
+                        // Fetch OSRM Route
+                        try {
+                            const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${realGPS.lon},${realGPS.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson`);
+                            const data = await res.json();
+                            if (data.routes && data.routes.length > 0) {
+                                const geojson = data.routes[0].geometry;
+                                if (routePolyline) map.removeLayer(routePolyline);
+                                routePolyline = L.geoJSON(geojson, { style: { color: '#00d2ff', weight: 4, opacity: 0.7, dashArray: '5, 10' } }).addTo(map);
+                                log(`ROUTE CALCULATED: ${(data.routes[0].distance / 1000).toFixed(2)} km`);
+                            }
+                        } catch (err) {
+                            log("ROUTING FAILED: " + err.message, "error");
+                        }
+                    });
+                };
+
+                function clearRoute() {
+                    if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
+                    if (routePolyline) { map.removeLayer(routePolyline); routePolyline = null; }
+
+                    // Clear all threat markers too
+                    for (let id in threatMarkers) {
+                        if (threatMarkers[id]) {
+                            map.removeLayer(threatMarkers[id]);
+                        }
+                    }
+                    threatMarkers = {};
+                    log("ROUTE & MARKERS CLEARED");
+                }
+
+                function initBars() {
+                    const container = document.getElementById('iouBars');
+                    ['Sky', 'Sand', 'Rock', 'Vegetation', 'Shadow', 'Distant'].forEach(c => {
+                        container.innerHTML += `
+            <div class="iou-item">
+                <div class="iou-header"><span style="font-size:10px; color:#d4dce5;">${c}</span><span style="font-size:10px; color:var(--orange);" id="val-${c}">0%</span></div>
+                <div class="iou-bar"><div class="iou-fill" id="bar-${c}"></div></div>
+            </div>`;
+                    });
+                }
+
+                // SOURCE HANDLING
+                function setMode(mode) {
+                    currentMode = mode;
+                    // UI Toggles
+                    document.getElementById('modeWebcam').classList.toggle('active', mode === 'webcam');
+                    document.getElementById('modeVideo').classList.toggle('active', mode === 'video');
+                    document.getElementById('modeStatic').classList.toggle('active', mode === 'static');
+
+                    // Visibility
+                    document.getElementById('videoUpload').style.display = mode === 'video' ? 'block' : 'none';
+                    document.getElementById('imageUpload').style.display = mode === 'static' ? 'block' : 'none';
+
+                    // Elements
+                    const webEl = document.getElementById('webcam');
+                    const vidEl = document.getElementById('videoPlayer');
+                    const imgEl = document.getElementById('staticPreview');
+                    const txtEl = document.getElementById('placeholderText');
+
+                    webEl.style.display = 'none'; vidEl.style.display = 'none'; imgEl.style.display = 'none';
+
+                    if (mode === 'webcam') {
+                        webEl.style.display = 'block'; txtEl.style.display = 'none';
+                        startWebcam();
+                    } else {
+                        stopWebcam();
+                        if (mode === 'video') vidEl.style.display = 'block';
+                        if (mode === 'static') imgEl.style.display = 'block';
+                        txtEl.style.display = 'none';
+                    }
+                    log(`SWITCHED TO ${mode.toUpperCase()} MODE`);
+                }
+
+                function startWebcam() {
+                    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+                        webcamStream = stream;
+                        document.getElementById('webcam').srcObject = stream;
+                        log('WEBCAM CONNECTED');
+                    }).catch(e => log('WEBCAM ERROR', 'error'));
+                }
+
+                function stopWebcam() {
+                    if (webcamStream) webcamStream.getTracks().forEach(t => t.stop());
+                }
+
+                function handleVideo(input) {
+                    const file = input.files[0];
+                    if (file) {
+                        const url = URL.createObjectURL(file);
+                        const vid = document.getElementById('videoPlayer');
+                        vid.src = url;
+                        vid.play();
+                        log(`LOADED VIDEO: ${file.name}`);
+                    }
+                }
+
+                function handleImage(input) {
+                    const file = input.files[0];
+                    if (file) {
+                        const url = URL.createObjectURL(file);
+                        document.getElementById('staticPreview').src = url;
+                        log(`LOADED IMAGE: ${file.name}`);
+                    }
+                }
+
+                // SYSTEM CONTROL
+                function toggleSystem() {
+                    isRunning = !isRunning;
+                    const btn = document.getElementById('mainBtn');
+                    if (isRunning) {
+                        document.getElementById('destModal').style.display = 'flex';
+                        setTimeout(() => document.getElementById('destInput').focus(), 100);
+                        btn.innerText = "ABORT MISSION";
+                        btn.className = "action-btn stop";
+                        document.getElementById('headerStatus').innerText = "ACTIVE";
+                        document.getElementById('headerStatus').style.color = "var(--green)";
+                        log("SYSTEM ENGAGED - PROCESSING STARTED");
+                        loop();
+                    } else {
+                        btn.innerText = "ENGAGE SYSTEMS";
+                        btn.className = "action-btn start";
+                        document.getElementById('headerStatus').innerText = "STANDBY";
+                        document.getElementById('headerStatus').style.color = "var(--text)";
+                        log("SYSTEM HALTED");
+                    }
+                }
+
+                function toggleSpecial(mode) {
+                    if (specialMode === mode) {
+                        specialMode = 'standard';
+                        document.getElementById('btnDepth').classList.remove('active');
+                        document.getElementById('btnThreat').classList.remove('active');
+                    } else {
+                        specialMode = mode;
+                        document.getElementById('btnDepth').classList.toggle('active', mode === 'depth');
+                        document.getElementById('btnThreat').classList.toggle('active', mode === 'threat');
+                        // Force out of FUSED view so the special diagnostic layer can be seen
+                        if (currentView === 'fused') {
+                            setView('seg');
+                        }
+                    }
+                    log(`SENSOR MODE: ${specialMode.toUpperCase()}`);
+                }
+
+                async function searchDestination() {
+                    const query = document.getElementById('destInput').value;
+                    document.getElementById('destModal').style.display = 'none';
+                    if (!query) return;
+
+                    if (!realGPS) { log("AWAITING GPS SIGNAL TO ROUTE", "error"); return; }
+
+                    log(`SEARCHING FOR: ${query}...`);
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+                        const data = await res.json();
+                        if (data && data.length > 0) {
+                            const destLat = parseFloat(data[0].lat);
+                            const destLon = parseFloat(data[0].lon);
+                            const dest = L.latLng(destLat, destLon);
+
+                            if (destMarker) map.removeLayer(destMarker);
+                            destMarker = L.circleMarker(dest, { radius: 6, color: '#ff9f43', fillOpacity: 1 }).addTo(map);
+                            log(`DESTINATION LOCKED: ${destLat.toFixed(4)}, ${destLon.toFixed(4)}`);
+
+                            const osrmRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${realGPS.lon},${realGPS.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson`);
+                            const osrmData = await osrmRes.json();
+                            if (osrmData.routes && osrmData.routes.length > 0) {
+                                const geojson = osrmData.routes[0].geometry;
+                                if (routePolyline) map.removeLayer(routePolyline);
+                                routePolyline = L.geoJSON(geojson, { style: { color: '#00d2ff', weight: 4, opacity: 0.7, dashArray: '5, 10' } }).addTo(map);
+                                log(`ROUTE CALCULATED: ${(osrmData.routes[0].distance / 1000).toFixed(2)} km`);
+                            }
+                        } else {
+                            log(`LOCATION NOT FOUND: ${query}`, "error");
+                        }
+                    } catch (err) {
+                        log("ROUTING FAILED: " + err.message, "error");
+                    }
+                }
+
+                function setView(view) {
+                    currentView = view;
+                    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                    document.getElementById('view' + view.charAt(0).toUpperCase() + view.slice(1)).classList.add('active');
+                    if (lastData) updateDisplay(lastData);
+                }
+
+                // MAIN LOOP
+                async function loop() {
+                    if (!isRunning) return;
+
+                    const canvas = document.createElement('canvas');
+                    let source = null;
+
+                    if (currentMode === 'webcam') source = document.getElementById('webcam');
+                    if (currentMode === 'video') source = document.getElementById('videoPlayer');
+                    if (currentMode === 'static') source = document.getElementById('staticPreview');
+
+                    if (!source) return;
+
+                    // Handle different source types dimensions
+                    let w, h;
+                    if (source.tagName === 'VIDEO') { w = source.videoWidth; h = source.videoHeight; }
+                    else { w = source.naturalWidth; h = source.naturalHeight; }
+
+                    if (w && h) {
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(source, 0, 0, w, h);
+
+                        canvas.toBlob(async blob => {
+                            const formData = new FormData();
+                            formData.append('file', blob, 'frame.jpg');
+                            formData.append('mode', specialMode);
+
+                            if (realGPS) {
+                                formData.append('lat', realGPS.lat);
+                                formData.append('lon', realGPS.lon);
+                                if (realGPS.heading !== null && !isNaN(realGPS.heading)) {
+                                    formData.append('heading', realGPS.heading);
+                                }
+                            }
+
+                            formData.append('env_toggles', JSON.stringify({
+                                opt_flow: document.getElementById('toggleOptFlow').checked,
+                                mog2: document.getElementById('toggleMOG2').checked,
+                                flash: document.getElementById('toggleFlash').checked,
+                                vae: document.getElementById('toggleVAE').checked
+                            }));
+
+                            try {
+                                const res = await fetch('http://localhost:8080/predict', { method: 'POST', body: formData });
+                                const data = await res.json();
+                                lastData = data;
+
+                                updateDisplay(data);
+                                updateMetrics(data);
+                            } catch (e) { console.error(e); }
+                            if (isRunning) requestAnimationFrame(loop);
+                        }, 'image/jpeg');
+                    } else {
+                        if (!window.warnedMedia) {
+                            log("WAITING FOR MEDIA SOURCE... (CHECK BROWSER PERMISSIONS)", "warn");
+                            window.warnedMedia = true;
+                        }
+                        requestAnimationFrame(loop);
+                    }
+                }
+
+                function updateDisplay(data) {
+                    const img = document.getElementById('mainDisplay');
+                    document.getElementById('waitText').style.display = 'none';
+                    img.style.display = 'block';
+
+                    if (specialMode !== 'standard' && currentView !== 'fused') img.src = "data:image/png;base64," + data.overlay_b64;
+                    else if (currentView === 'fused') img.src = "data:image/png;base64," + (data.fused_b64 || data.overlay_b64);
+                    else if (currentView === 'seg') img.src = "data:image/png;base64," + data.overlay_b64;
+                    else if (currentView === 'risk') img.src = "data:image/png;base64," + data.risk_map_b64;
+                    else if (currentView === 'path') img.src = "data:image/png;base64," + data.path_plan_b64;
+                }
+
+                function updateMetrics(data) {
+                    document.getElementById('headerLatency').innerText = data.inference_ms + " ms";
+                    document.getElementById('metricComplexity').innerText = data.terrain_complexity;
+                    const suitEl = document.getElementById('metricSuitability');
+                    suitEl.innerText = data.mission_suitability;
+
+                    if (data.mission_suitability === 'UNSUITABLE') suitEl.style.color = 'var(--red)';
+                    else if (data.mission_suitability === 'CAUTION') suitEl.style.color = 'var(--orange)';
+                    else suitEl.style.color = 'var(--green)';
+
+                    const envEl = document.getElementById('metricEnvironment');
+                    if (data.env_data) {
+                        envEl.innerText = data.env_data.status;
+                        if (data.env_data.status === 'SANDSTORM') envEl.style.color = 'var(--red)';
+                        else if (data.env_data.status === 'DEGRADED') envEl.style.color = 'var(--orange)';
+                        else envEl.style.color = 'var(--green)';
+                    }
+
+                    document.getElementById('suitabilityReason').innerText = data.suitability_reason;
+                    document.getElementById('metricGPS').innerText = data.gps.lat.toFixed(4) + " / " + data.gps.lon.toFixed(4);
+
+                    // Map
+                    const latlng = [data.gps.lat, data.gps.lon];
+                    map.panTo(latlng);
+                    if (mapMarker) map.removeLayer(mapMarker);
+                    mapMarker = L.circleMarker(latlng, { radius: 5, color: '#4ecdc4', fillOpacity: 1 }).addTo(map);
+
+                    // Bars
+                    for (const [k, v] of Object.entries(data.iou_per_class)) {
+                        const pct = (v * 100).toFixed(1);
+                        const bar = document.getElementById(`bar-${k}`);
+                        if (bar) {
+                            bar.style.width = pct + "%";
+                            document.getElementById(`val-${k}`).innerText = pct + "%";
+                        }
+                    }
+
+                    // THREAT LOGGING & ALERTS
+                    if (data.threat_data) {
+                        const { hostiles, vehicles, details } = data.threat_data;
+                        if (hostiles > 0 || vehicles > 0) {
+                            document.getElementById('threatPanel').style.display = 'block';
+                            document.getElementById('valHostiles').innerText = hostiles;
+                            document.getElementById('valVehicles').innerText = vehicles;
+
+                            if (hostiles !== lastHostiles || vehicles !== lastVehicles) {
+                                log(`ALERT: ${hostiles} HOSTILES, ${vehicles} VEHICLES`, 'error');
+                                lastHostiles = hostiles;
+                                lastVehicles = vehicles;
+                            }
+                        } else {
+                            document.getElementById('threatPanel').style.display = 'none';
+                            lastHostiles = 0;
+                            lastVehicles = 0;
+                        }
+
+                        if (details) {
+                            details.forEach(threat => {
+                                // Voice Alert for new threats
+                                if (!knownThreats.has(threat.id)) {
+                                    knownThreats.add(threat.id);
+                                    if (threat.type === 'HOSTILE') {
+                                        if (document.getElementById('audioHostile') && document.getElementById('audioHostile').checked) {
+                                            const alert = new SpeechSynthesisUtterance(`Warning. Tango ${threat.id} confirmed.`);
+                                            alert.rate = 1.2;
+                                            window.speechSynthesis.speak(alert);
+                                        }
+                                    }
+                                }
+
+                                // Map Marker
+                                if (!threatMarkers[threat.id] && threat.type === 'HOSTILE') {
+                                    // Slight random offset so markers don't perfectly overlap
+                                    const offsetLat = data.gps.lat + (Math.random() - 0.5) * 0.0005;
+                                    const offsetLon = data.gps.lon + (Math.random() - 0.5) * 0.0005;
+                                    threatMarkers[threat.id] = L.circleMarker([offsetLat, offsetLon], {
+                                        radius: 6, color: '#ff4757', fillOpacity: 0.8
+                                    }).addTo(map);
+
+                                    setTimeout(() => {
+                                        if (threatMarkers[threat.id]) {
+                                            map.removeLayer(threatMarkers[threat.id]);
+                                            delete threatMarkers[threat.id];
+                                        }
+                                    }, 10000); // Remove marker from map completely after 10 seconds
+                                }
+                            });
+                        }
+                    }
+
+                    // SENTINEL AI PASSIVE LOGS (PHASE III & IV)
+                    if (data.env_data) {
+                        if (data.env_data.vae_degraded) {
+                            document.getElementById('envWarningHUD').style.display = 'block';
+                        } else {
+                            document.getElementById('envWarningHUD').style.display = 'none';
+                        }
+
+                        if (data.env_data.logs) {
+                            if (typeof window.lastAudioAlerts === 'undefined') {
+                                window.lastAudioAlerts = {};
+                            }
+                            const now = Date.now();
+                            const COOLDOWN_MS = 10000; // 10 seconds before same alert can play again
+
+                            data.env_data.logs.forEach(msg => {
+                                log(`SENTINEL: ${msg}`, 'warn');
+
+                                // Critical voice alerts
+                                if (msg.includes("GLINT")) {
+                                    if (document.getElementById('audioGlint') && document.getElementById('audioGlint').checked && (now - (window.lastAudioAlerts['glint'] || 0) > COOLDOWN_MS)) {
+                                        window.lastAudioAlerts['glint'] = now;
+                                        const alert = new SpeechSynthesisUtterance("Critical Warning. Possible optic reflection detected.");
+                                        alert.rate = 1.2;
+                                        window.speechSynthesis.speak(alert);
+                                    }
+                                } else if (msg.includes("FLASH DETECTED")) {
+                                    if (document.getElementById('audioFlash') && document.getElementById('audioFlash').checked && (now - (window.lastAudioAlerts['flash'] || 0) > COOLDOWN_MS)) {
+                                        window.lastAudioAlerts['flash'] = now;
+                                        const alert = new SpeechSynthesisUtterance("Warning. High intensity flash detected.");
+                                        alert.rate = 1.2;
+                                        window.speechSynthesis.speak(alert);
+                                    }
+                                } else if (msg.includes("MOTION ANOMALY")) {
+                                    if (document.getElementById('audioMotion') && document.getElementById('audioMotion').checked && (now - (window.lastAudioAlerts['motion'] || 0) > COOLDOWN_MS)) {
+                                        window.lastAudioAlerts['motion'] = now;
+                                        const alert = new SpeechSynthesisUtterance("Caution. Global motion shift detected.");
+                                        alert.rate = 1.2;
+                                        window.speechSynthesis.speak(alert);
+                                    }
+                                } else if (msg.includes("MULTIPLE UNKNOWN SIGNATURES")) {
+                                    if (document.getElementById('audioMOG2') && document.getElementById('audioMOG2').checked && (now - (window.lastAudioAlerts['mog2'] || 0) > COOLDOWN_MS)) {
+                                        window.lastAudioAlerts['mog2'] = now;
+                                        const alert = new SpeechSynthesisUtterance("Warning. Multiple unknown signatures in sector.");
+                                        alert.rate = 1.2;
+                                        window.speechSynthesis.speak(alert);
+                                    }
+                                } else if (msg.includes("ENVIRONMENTAL DEGRADATION")) {
+                                    if (document.getElementById('audioVAE') && document.getElementById('audioVAE').checked && (now - (window.lastAudioAlerts['vae'] || 0) > COOLDOWN_MS)) {
+                                        window.lastAudioAlerts['vae'] = now;
+                                        const alert = new SpeechSynthesisUtterance("Critical. Environmental degradation detected. Visibility compromised.");
+                                        alert.rate = 1.2;
+                                        window.speechSynthesis.speak(alert);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+
+
+                function log(msg, type = '') {
+                    const div = document.createElement('div');
+                    div.className = 'log-entry ' + type;
+                    div.innerText = '> ' + msg;
+                    document.getElementById('logsContainer').prepend(div);
+                }
+
+                // EXPORT REPORT FUNCTION
+                function exportReport() {
+                    if (!lastData) { alert("Run the system first to generate data."); return; }
+
+                    const d = new Date();
+                    const ts = d.toLocaleTimeString();
+
+                    const html = `
+    <html>
+    <head>
+        <title>MISSION REPORT ${ts}</title>
+        <style>
+            body { font-family: monospace; background: #eee; padding: 40px; }
+            .paper { background: white; max-width: 800px; margin: 0 auto; padding: 40px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+            h1 { border-bottom: 2px solid black; padding-bottom: 10px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+            .box { border: 1px solid #ccc; padding: 15px; }
+            .img-box img { width: 100%; border: 1px solid #000; }
+            .stat { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: 5px 0; }
+        </style>
+    </head>
+    <body>
+        <div class="paper">
+            <h1>TERRA-VIS TACTICAL REPORT</h1>
+            <div><strong>TIMESTAMP:</strong> ${d.toISOString()}</div>
+            <div><strong>GPS:</strong> ${lastData.gps.lat.toFixed(5)}, ${lastData.gps.lon.toFixed(5)}</div>
+            <div><strong>STATUS:</strong> ${lastData.mission_suitability}</div>
+            
+            <div class="grid">
+                <div class="img-box">
+                    <h3>SEGMENTATION MAP</h3>
+                    <img src="data:image/png;base64,${lastData.overlay_b64}">
+                </div>
+                <div class="img-box">
+                    <h3>RISK ASSESSMENT</h3>
+                    <img src="data:image/png;base64,${lastData.risk_map_b64}">
+                </div>
+            </div>
+            
+            <div class="grid">
+                <div class="box">
+                    <h3>TERRAIN COMPOSITION</h3>
+                    ${Object.entries(lastData.iou_per_class).map(([k, v]) =>
+                        `<div class="stat"><span>${k}</span><span>${(v * 100).toFixed(1)}%</span></div>`
+                    ).join('')}
+                </div>
+                <div class="box">
+                    <h3>MISSION METRICS</h3>
+                    <div class="stat"><span>Complexity Index</span><span>${lastData.terrain_complexity}</span></div>
+                    <div class="stat"><span>Inference Latency</span><span>${lastData.inference_ms} ms</span></div>
+                    <div class="stat"><span>Suitability Reason</span><span>${lastData.suitability_reason}</span></div>
+                    <div class="stat" style="color:red"><span>Detected Hostiles (Session)</span><span>${knownThreats.size}</span></div>
+                </div>
+                <div class="box">
+                    <h3>PASSIVE SENSORS & ENV</h3>
+                    <div class="stat"><span>VAE Status</span><span style="color:${lastData.env_data?.vae_degraded ? 'red' : 'green'}">${lastData.env_data?.vae_degraded ? 'DEGRADED' : 'NOMINAL'}</span></div>
+                    <div class="stat" style="flex-direction:column; align-items:flex-start;">
+                        <span style="margin-bottom:5px;">Recent Logs:</span>
+                        <div style="font-size:10px; color:#555; max-height:80px; overflow-y:auto; width:100%;">
+                            ${lastData.env_data?.logs?.map(l => `<div>> ${l}</div>`).join('') || '<div>No recent anomalies</div>'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </body>
+    </html>
+    `;
+
+                    const blob = new Blob([html], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `TERRA_VIS_REPORT_${Date.now()}.html`;
+                    a.click();
+                    log("REPORT DOWNLOADED");
+                }
+            </script>
+        </body>
+
+        </html>

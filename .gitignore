@@ -1,0 +1,32 @@
+# Virtual Environments
+venv/
+venv310/
+.env
+
+# Raw unencrypted models (Secure Vault retains .terravis files)
+*.pt
+*.pth
+*.onnx
+outputs/checkpoints/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary Decrypted Models
+tmp_*.pt
+tmp_*.pth
+tmp_*.onnx
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Secured Vault Models
+vault/
+*.terravis
+
+*.zip
+dist/
+outputs/
